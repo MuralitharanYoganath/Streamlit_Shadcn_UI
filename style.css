@@ -1,0 +1,23 @@
+body {
+    background-color: #111;
+    color: #eee;
+    font-family: Arial, sans-serif;
+}
+
+.stButton>button {
+    background-color: #444;
+    color: #eee;
+    border: none;
+    padding: 10px 20px;
+    margin: 10px;
+    cursor: pointer;
+}
+
+.stButton>button:hover {
+    background-color: #666;
+}
+
+.stTextArea>div>textarea {
+    background-color: #222;
+    color: #eee;
+}
