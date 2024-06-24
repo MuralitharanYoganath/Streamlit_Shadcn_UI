@@ -3,10 +3,6 @@ import streamlit_shadcn_ui as ui
 
 st.header("Radio Group Component")
 
-with open("Streamlit-Components/RadioGroup.md", "r") as f:
-    
-    st.markdown(f.read())
-
 # Radio Group Component
 radio_options = [
     {"label": "Option A", "value": "A", "id": "r1"},

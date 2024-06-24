@@ -4,8 +4,6 @@ import streamlit_shadcn_ui as ui
 
 st.header("CheckBox")
 
-with open("Streamlit-Components/checkbox.md", "r") as f:
-    st.markdown(f.read())
 
 checkbox_Value = [True,False,False]
 
@@ -18,4 +16,3 @@ st.markdown(f"""
 + checkbox 2 value: {checkbox_Value[1]}
 + checkbox 3 value: {checkbox_Value[2]}
 """)
-st.write(ui.alert_dialog)

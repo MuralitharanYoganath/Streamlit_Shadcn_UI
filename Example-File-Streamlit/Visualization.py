@@ -11,10 +11,6 @@ st.set_page_config(
 
 st.header("Use Pygwalker to build visualization with drag-and-drop operations")
 
-with open("Streamlit-Components/Visualization.md", "r") as f:
-    
-    st.markdown(f.read())
-
 ui.badges(badge_list=[("Dataframe", "default"), ("to", "secondary"), ("Interactive Data App", "destructive")], class_name="flex gap-2", key="viz_badges1")
 st.caption("This is build with Pygwalker and Streamlit. PyGWalker is a Python library turns your dataframe into a tableau-alternative")
 st.page_link("https://kanaries.net/pygwalker", label="learn more abuout pygwalker")
@@ -46,5 +42,3 @@ pyg_app.explorer()
 
 st.header("More resources about pygwalker")
 st.page_link("https://docs.kanaries.net/topics/Tableau/tableau-dark-theme", label="Use PyGWalker to build a customized tableau alternative - dark mode example")
-
-st.write(ui.alert_dialog)

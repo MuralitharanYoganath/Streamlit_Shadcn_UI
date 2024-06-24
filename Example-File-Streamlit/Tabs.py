@@ -4,9 +4,6 @@ import streamlit_shadcn_ui as ui
 
 st.header("Tabs")
 
-with open("Streamlit-Components/Tabs.md", "r") as f:
-    
-    st.markdown(f.read())
 
 value = ui.tabs(options=['PyGWalker', 'Graphic Walker', 'GWalkR', 'RATH'], default_value='PyGWalker', key="kanaries")
 
@@ -25,4 +22,3 @@ with ui.card(key="image"):
         ui.element("link_button", text=value + " Github", url="https://github.com/Kanaries/Rath", className="mt-2", key="btn2")
     st.write("Selected:", value)
 
-st.write(ui.alert_dialog)

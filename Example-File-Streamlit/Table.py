@@ -4,9 +4,6 @@ import streamlit as st
 
 st.header("Table")
 
-with open("Streamlit-Components/Table.md", "r") as f:
-    
-    st.markdown(f.read())
 
 # Sample data
 data = [
@@ -22,5 +19,3 @@ data = [
 invoice_df = pd.DataFrame(data)
 
 ui.table(data=invoice_df, maxHeight=300)
-
-st.write(ui.alert_dialog)
