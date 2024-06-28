@@ -9,11 +9,13 @@ client = MongoClient(MONGO_URI)
 db = client["recruiter_ai"]
 collection = db["job_descriptions"]
 
-# Page configuration
-st.header("Recruiter AI")
+# Streamlit configuration
+st.set_page_config(page_title="Recruiter AI")
 
+# Initialize modal for job description viewing/editing
 modal = Modal("Job Description", key="job_description_modal", max_width=600, padding=10)
 
+# CSS for modal content customization
 modal_css = """
 <style>
     .modal-content {
@@ -53,8 +55,8 @@ def new_job_description():
 
 # Function to handle submit action
 def submit_job_description():
-    if 'job_desc' in st.session_state and st.session_state['job_desc'].strip():
-        job_description = st.session_state['job_desc']
+    if 'job_description' in st.session_state and st.session_state['job_description'].strip():
+        job_description = st.session_state['job_description']
         # API endpoint
         api_url = "http://localhost:8000/api/v1/jd"
         # Payload to send to the API
@@ -92,7 +94,7 @@ def update_job_description():
     try:
         if st.session_state['selected_job_id'] is not None:
             api_url = f"http://localhost:8000/api/v1/jd/{st.session_state['selected_job_id']}"
-            job_description = st.session_state['modal_content'] if st.session_state['modal_open'] else st.session_state['job_desc']
+            job_description = st.session_state['modal_content'] if st.session_state['modal_open'] else st.session_state['job_description']
             payload = {"job_description": job_description}
             response = requests.put(api_url, json=payload)
             if response.status_code == 200:
@@ -107,6 +109,22 @@ def update_job_description():
             st.error("No job description selected.")
     except requests.exceptions.RequestException as e:
         st.error(f"Error during the request: {e}")
+
+# Function to display candidates table
+def show_candidates_table(candidates):
+    st.write("### Candidates")
+    # Create table headers
+    st.write(
+        "| Select | Name | Email | Job ID | Mobile No | Status |",
+        "|--------|------|-------|--------|------------|--------|"
+    )
+    # Populate table rows
+    for candidate in candidates:
+        checkbox_id = f"checkbox_{candidate['id']}"
+        is_checked = st.checkbox("", key=checkbox_id)
+        st.write(
+            f"| {is_checked} | {candidate['name']} | {candidate['email']} | {candidate['job_id']} | {candidate['mobile_no']} | {candidate['status']} |"
+        )
 
 # Sidebar
 with st.sidebar:
@@ -135,7 +153,7 @@ else:
     st.session_state['unsaved_changes'] = job_description != st.session_state['current_job_description']
 
 # Create columns for buttons
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.session_state['edit_mode']:
@@ -168,6 +186,31 @@ with col2:
                         st.error("Job description field not found in the response.")
                 else:
                     st.error("Failed to fetch job description. Please try again.")
+            else:
+                st.warning("No job description selected.")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error during the request: {e}")
+
+with col3:
+    # View Candidates button
+    view_candidates_key = "view_candidates_button"
+    if st.button("View Candidates", key=view_candidates_key):
+        try:
+            if st.session_state['selected_job_id'] is not None:
+                # API endpoint for fetching the candidates
+                api_url = f"http://localhost:8000/api/v1/candidates/{st.session_state['selected_job_id']}"
+                # Make the GET request
+                response = requests.get(api_url)
+                if response.status_code == 200:
+                    # Parse the response
+                    candidates_response = response.json()
+                    # Display the candidates in a table
+                    if 'candidates' in candidates_response:
+                        show_candidates_table(candidates_response['candidates'])
+                    else:
+                        st.error("Candidates field not found in the response.")
+                else:
+                    st.error("Failed to fetch candidates. Please try again.")
             else:
                 st.warning("No job description selected.")
         except requests.exceptions.RequestException as e:
