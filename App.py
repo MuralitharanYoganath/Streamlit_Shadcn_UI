@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from pymongo import MongoClient
 from streamlit_modal import Modal
+import pandas as pd
 
 # MongoDB configuration
 MONGO_URI = "mongodb://localhost:27017/"
@@ -46,6 +47,21 @@ if 'edit_mode' not in st.session_state:
 # Function to fetch job descriptions from MongoDB
 def fetch_job_descriptions():
     return list(collection.find({}, {"_id": 1, "prompt": 1, "job_description": 1}))
+
+# Function to fetch candidates based on job ID
+def fetch_candidates(job_id):
+    try:
+        api_url = f"http://localhost:8000/api/v1/candidates/{job_id}"
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            candidates_response = response.json()
+            return candidates_response.get('candidates', [])
+        else:
+            st.error(f"Failed to fetch candidates. Status code: {response.status_code}")
+            return []
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error during request to fetch candidates: {e}")
+        return []
 
 # Function to handle New Job Description button
 def new_job_description():
@@ -111,20 +127,20 @@ def update_job_description():
         st.error(f"Error during the request: {e}")
 
 # Function to display candidates table
-def show_candidates_table(candidates):
-    st.write("### Candidates")
-    # Create table headers
-    st.write(
-        "| Select | Name | Email | Job ID | Mobile No | Status |",
-        "|--------|------|-------|--------|------------|--------|"
-    )
-    # Populate table rows
-    for candidate in candidates:
-        checkbox_id = f"checkbox_{candidate['id']}"
-        is_checked = st.checkbox("", key=checkbox_id)
-        st.write(
-            f"| {is_checked} | {candidate['name']} | {candidate['email']} | {candidate['job_id']} | {candidate['mobile_no']} | {candidate['status']} |"
-        )
+def fetch_candidates():
+    try:
+        api_url = "http://localhost:8000/api/v1/candidate/"  # Adjust the endpoint as per your API
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            candidates_data = response.json()
+            df = pd.DataFrame(candidates_data)
+            st.header("Filtered Candidates")
+            st.table(df)
+        else:
+            st.error(f"Failed to fetch candidates. Status code: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error during request to fetch candidates: {e}")
+
 
 # Sidebar
 with st.sidebar:
@@ -153,7 +169,7 @@ else:
     st.session_state['unsaved_changes'] = job_description != st.session_state['current_job_description']
 
 # Create columns for buttons
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
 with col1:
     if st.session_state['edit_mode']:
@@ -191,39 +207,13 @@ with col2:
         except requests.exceptions.RequestException as e:
             st.error(f"Error during the request: {e}")
 
-with col3:
-    # View Candidates button
-    view_candidates_key = "view_candidates_button"
-    if st.button("View Candidates", key=view_candidates_key):
-        try:
-            if st.session_state['selected_job_id'] is not None:
-                # API endpoint for fetching the candidates
-                api_url = f"http://localhost:8000/api/v1/candidates/{st.session_state['selected_job_id']}"
-                # Make the GET request
-                response = requests.get(api_url)
-                if response.status_code == 200:
-                    # Parse the response
-                    candidates_response = response.json()
-                    # Display the candidates in a table
-                    if 'candidates' in candidates_response:
-                        show_candidates_table(candidates_response['candidates'])
-                    else:
-                        st.error("Candidates field not found in the response.")
-                else:
-                    st.error("Failed to fetch candidates. Please try again.")
-            else:
-                st.warning("No job description selected.")
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error during the request: {e}")
+# View Candidates button
+view_candidates_key = "view_candidates_button"
+if st.button("View Candidates", key=view_candidates_key):
+    fetch_candidates()
 
 # Modal for viewing and editing job description
 if modal.is_open():
     with modal.container():
         edited_job_description = st.text_area("Edit Job Description", value=st.session_state['modal_content'], key="modal_desc")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Save Edit", key="save_edit_button"):
-                st.session_state['modal_content'] = edited_job_description
-        with col2:
-            if st.button("Update", key="modal_update_button"):
-                update_job_description()
+
