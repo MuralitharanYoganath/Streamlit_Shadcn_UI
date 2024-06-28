@@ -38,6 +38,8 @@ if 'unsaved_changes' not in st.session_state:
     st.session_state['unsaved_changes'] = False
 if 'modal_content' not in st.session_state:
     st.session_state['modal_content'] = ""
+if 'edit_mode' not in st.session_state:
+    st.session_state['edit_mode'] = False
 
 # Function to fetch job descriptions from MongoDB
 def fetch_job_descriptions():
@@ -90,7 +92,7 @@ def update_job_description():
     try:
         if st.session_state['selected_job_id'] is not None:
             api_url = f"http://localhost:8000/api/v1/jd/{st.session_state['selected_job_id']}"
-            job_description = st.session_state['modal_content']
+            job_description = st.session_state['modal_content'] if st.session_state['modal_open'] else st.session_state['job_desc']
             payload = {"job_description": job_description}
             response = requests.put(api_url, json=payload)
             if response.status_code == 200:
@@ -120,10 +122,14 @@ with st.sidebar:
     # New Job Description button
     if st.sidebar.button("New Job Description"):
         new_job_description()
+    # Edit Job Description button
+    if st.sidebar.button("Edit Job Description"):
+        st.session_state['disable_text_area'] = False
+        st.session_state['edit_mode'] = True
 
 # Main job description input area
 if st.session_state['disable_text_area']:
-    st.text_area("Describe the Job Profile", value=st.session_state['current_job_description'], disabled=True)
+    st.text_area("Describe the Job Profile", value=st.session_state['current_job_description'], disabled=True, key="desc_disabled")
 else:
     job_description = st.text_area("Describe the Job Profile", value=st.session_state['current_job_description'], key="job_desc")
     st.session_state['unsaved_changes'] = job_description != st.session_state['current_job_description']
@@ -132,13 +138,18 @@ else:
 col1, col2 = st.columns(2)
 
 with col1:
-    # Submit button
-    if st.button("Submit"):
-        submit_job_description()
+    if st.session_state['edit_mode']:
+        # Update button for editing mode
+        if st.button("Update", key="update_button"):
+            update_job_description()
+    else:
+        # Submit button for new job description
+        if st.button("Submit", key="submit_button"):
+            submit_job_description()
 
 with col2:
     # View Job Description button
-    if st.button("View Job Description"):
+    if st.button("View Job Description", key="view_button"):
         try:
             if st.session_state['selected_job_id'] is not None:
                 # API endpoint for fetching the job description
@@ -168,8 +179,8 @@ if modal.is_open():
         edited_job_description = st.text_area("Edit Job Description", value=st.session_state['modal_content'], key="modal_desc")
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Save Edit"):
+            if st.button("Save Edit", key="save_edit_button"):
                 st.session_state['modal_content'] = edited_job_description
         with col2:
-            if st.button("Update"):
+            if st.button("Update", key="modal_update_button"):
                 update_job_description()
