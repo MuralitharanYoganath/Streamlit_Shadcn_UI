@@ -3,6 +3,12 @@ import requests
 from pymongo import MongoClient
 from streamlit_modal import Modal
 import pandas as pd
+from whatsapp_client import WhatsAppWrapper
+
+class WhatsAppWrapper:
+    def send_template_message(self, template_name, language_code, phone_number):
+        # This is just a mock function. Replace this with actual API call logic
+        st.write(f"Sending {template_name} message in {language_code} to {phone_number}")
 
 # MongoDB configuration
 MONGO_URI = "mongodb://localhost:27017/"
@@ -43,25 +49,31 @@ if 'modal_content' not in st.session_state:
     st.session_state['modal_content'] = ""
 if 'edit_mode' not in st.session_state:
     st.session_state['edit_mode'] = False
+if 'selected_candidates' not in st.session_state:
+    st.session_state['selected_candidates'] = []
 
 # Function to fetch job descriptions from MongoDB
 def fetch_job_descriptions():
     return list(collection.find({}, {"_id": 1, "prompt": 1, "job_description": 1}))
 
-# Function to fetch candidates based on job ID
-def fetch_candidates(job_id):
+# Function to fetch candidates
+def fetch_candidates():
     try:
-        api_url = f"http://localhost:8000/api/v1/candidates/{job_id}"
+        api_url = "http://localhost:8000/api/v1/candidate/"  # Adjust the endpoint as per your API
         response = requests.get(api_url)
         if response.status_code == 200:
-            candidates_response = response.json()
-            return candidates_response.get('candidates', [])
+            candidates_data = response.json()
+            df = pd.DataFrame(candidates_data).drop(columns=['_id'])  # Drop '_id' column
+            df['Select'] = df.apply(lambda row: st.checkbox("", key=row.name), axis=1)  # Add checkboxes
+            st.header("Filtered Candidates")
+            st.table(df.drop(columns=['Select']))  # Display table without 'Select' column
+            # Store selected candidates
+            selected_candidates = df[df['Select']].index.tolist()
+            st.session_state['selected_candidates'] = df.iloc[selected_candidates]['phone_number'].tolist()
         else:
             st.error(f"Failed to fetch candidates. Status code: {response.status_code}")
-            return []
     except requests.exceptions.RequestException as e:
         st.error(f"Error during request to fetch candidates: {e}")
-        return []
 
 # Function to handle New Job Description button
 def new_job_description():
@@ -126,21 +138,18 @@ def update_job_description():
     except requests.exceptions.RequestException as e:
         st.error(f"Error during the request: {e}")
 
-# Function to display candidates table
-def fetch_candidates():
-    try:
-        api_url = "http://localhost:8000/api/v1/candidate/"  # Adjust the endpoint as per your API
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            candidates_data = response.json()
-            df = pd.DataFrame(candidates_data)
-            st.header("Filtered Candidates")
-            st.table(df)
-        else:
-            st.error(f"Failed to fetch candidates. Status code: {response.status_code}")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error during request to fetch candidates: {e}")
-
+# Function to schedule candidate (send WhatsApp message)
+def schedule_candidate():
+    if 'selected_candidates' in st.session_state and st.session_state['selected_candidates']:
+        client = WhatsAppWrapper()
+        for phone_number in st.session_state['selected_candidates']:
+            try:
+                client.send_template_message("hr_recruter_ai", "en_US", phone_number)
+                st.success(f"Message sent to {phone_number}")
+            except Exception as e:
+                st.error(f"Failed to send message to {phone_number}: {e}")
+    else:
+        st.warning("No candidates selected.")
 
 # Sidebar
 with st.sidebar:
@@ -212,8 +221,12 @@ view_candidates_key = "view_candidates_button"
 if st.button("View Candidates", key=view_candidates_key):
     fetch_candidates()
 
+# Schedule Candidate button
+if st.session_state['selected_candidates']:
+    if st.button("Schedule Candidate"):
+        schedule_candidate()
+
 # Modal for viewing and editing job description
 if modal.is_open():
     with modal.container():
         edited_job_description = st.text_area("Edit Job Description", value=st.session_state['modal_content'], key="modal_desc")
-
